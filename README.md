@@ -1,5 +1,5 @@
 # discobot-pogo
-Discord bot written in node.js using discord.js. Monitors and announces Pokemon Go server status.
+Discord bot written in node.js using discord.js. Monitors and announces Pokemon Go server status, obtained from [pokemongostatus.org](https://pokemongostatus.org/).
 
 ### Requirements
 
@@ -8,6 +8,10 @@ Discord bot written in node.js using discord.js. Monitors and announces Pokemon 
 * [discord.js](http://github.com/hydrabolt/discord.js)
 
           npm install --save --no-optional discord.js
+
+* [console-stamp](https://www.npmjs.com/package/console-stamp)
+
+          npm install console-stamp
 
 ---
 
