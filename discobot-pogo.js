@@ -8,9 +8,7 @@ require( "console-stamp" )( console, { pattern : "dd/mm/yy HH:MM:ss.l" } );
 var pokeStatus = require('./status.js');
 
 // settings
-const adminID = "XXX";  // bot only accepts admin commands from this user ID
-const botToken = "XXX";	 // bot login token
-const channelName = "pogo";	// only listens and announces in this channel (on all connected servers)
+var settings = require('./settings.js');
 
 // variables
 var bot;
@@ -27,7 +25,7 @@ function init(){
 		autoReconnect: true,
 		rateLimitAsError: true
 	});
-	bot.loginWithToken(botToken);
+	bot.loginWithToken(settings.botToken);
 	
 	muted = false;
 }
@@ -37,7 +35,7 @@ init();
 // bot event handler -- connected
 bot.on('ready', function(){
 	console.log('Bot online');
-	bot.sendMessage(adminID, 'Bot online');
+	bot.sendMessage(settings.adminID, 'Bot online');
 	
 	// list servers
 	if(bot.servers.length > 0){
@@ -61,7 +59,7 @@ bot.on('ready', function(){
 		for (var i=0; i<textChannels.length; i++) 
 			console.log('  - %s (%s)', textChannels[i].name, textChannels[i].id);
 			
-		targetChannels = textChannels.getAll('name', channelName);
+		targetChannels = textChannels.getAll('name', settings.channelName);
 	}
 	
 	if(typeof targetChannels === 'undefined' || targetChannels.length == 0){
@@ -75,7 +73,7 @@ bot.on('ready', function(){
 	
 	// set up timer
 	clearInterval(timer);
-	timer = setInterval(updatePogoStatus, 30000);
+	timer = setInterval(updatePogoStatus, 60000);
 	updatePogoStatus();
 });
 
@@ -97,7 +95,7 @@ bot.on('message', function(message){
 	if(message.channel instanceof discord.PMChannel){
 	
 		// admin commands
-		if(message.author.id == adminID){
+		if(message.author.id == settings.adminID){
 			console.log('Admin command received: ' + message.content);
 			switch(message.content.toLowerCase()){
 				case 'kill':
@@ -146,7 +144,6 @@ bot.on('message', function(message){
 			break;
 		
 			case 'uptime':
-				console.log(pokeStatus);
 				var str = '\nGO has been ' + pokeStatus.goStatus() + ' for ' + pokeStatus.go_idle + ' minutes';
 				str += '\nPast hour uptime: ' + pokeStatus.go_uptime_hour + '%';
 				str += '\nPast day uptime: ' + pokeStatus.go_uptime_day + '%';
@@ -164,14 +161,14 @@ bot.on('message', function(message){
 // bot event handler -- warning
 bot.on('warn', function(error){
 	console.warn(error);
-	bot.sendMessage(adminID, error);
+	bot.sendMessage(settings.adminID, error);
 });
 
 
 // bot event handler -- error
 bot.on('error', function(error){
 	console.error(error);
-	bot.sendMessage(adminID, error);
+	bot.sendMessage(settings.adminID, error);
 });
 
 
