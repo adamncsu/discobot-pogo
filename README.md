@@ -1,5 +1,5 @@
 # discobot-pogo
-Discord bot written in node.js using discord.js. Monitors and announces Pokemon Go server status, obtained from [pokemongostatus.org](https://pokemongostatus.org/).
+Discord bot written in node.js using discord.js. Monitors and announces Pokemon Go server status, obtained from [go.jooas.com](https://go.jooas.com/).
 
 ### Requirements
 
@@ -26,7 +26,7 @@ const channelName = "pogo";	// only listens and announces in this channel (on al
 
 `botToken` is the token acquired after [creating your bot](https://discordapp.com/developers/applications/me).
 
-`channelName` is the name of the channel that you want to listen to public commands in. This is also the channel that announcements are made in. If your bot is connected to multiple servers, it will look at each server's channels.
+`channelName` is the name of the channel that you want to listen to public commands in. This is also the channel that announcements are made in. Can connect to channel on multiple servers.
 
 ---
 
@@ -43,3 +43,4 @@ const channelName = "pogo";	// only listens and announces in this channel (on al
 
 * `!ping` bot status check
 * `!status` forces a refresh and announcement of the current server status
+* `!uptime` announces the server uptime stats

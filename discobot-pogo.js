@@ -4,13 +4,8 @@ const https = require('https');
 // logging
 require( "console-stamp" )( console, { pattern : "dd/mm/yy HH:MM:ss.l" } );
 
-// server status url
-const httpo = {
-	host: 'pokemongostatus.org',
-	path: '/status.jsonp',
-	port: 443,
-	method: 'GET'
-};
+// server status and info
+var pokeStatus = require('./status.js');
 
 // settings
 const adminID = "XXX";  // bot only accepts admin commands from this user ID
@@ -20,9 +15,8 @@ const channelName = "pogo";	// only listens and announces in this channel (on al
 // variables
 var bot;
 var targetChannels;
-var serverStatus;
 var muted;
-
+var timer;
 
 
 
@@ -80,7 +74,9 @@ bot.on('ready', function(){
 	}
 	
 	// set up timer
-	setInterval(updatePogoStatus, 60000);
+	clearInterval(timer);
+	timer = setInterval(updatePogoStatus, 30000);
+	updatePogoStatus();
 });
 
 
@@ -148,6 +144,17 @@ bot.on('message', function(message){
 			case 'status':
 				updatePogoStatus(message);
 			break;
+		
+			case 'uptime':
+				console.log(pokeStatus);
+				var str = '\nGO has been ' + pokeStatus.goStatus() + ' for ' + pokeStatus.go_idle + ' minutes';
+				str += '\nPast hour uptime: ' + pokeStatus.go_uptime_hour + '%';
+				str += '\nPast day uptime: ' + pokeStatus.go_uptime_day + '%';
+				str += '\nPTC has been ' + pokeStatus.ptcStatus() + ' for ' + pokeStatus.ptc_idle + ' minutes';
+				str += '\nPast hour uptime: ' + pokeStatus.ptc_uptime_hour + '%';
+				str += '\nPast day uptime: ' + pokeStatus.ptc_uptime_day + '%';
+				bot.reply(message, str);
+			break;
 		}
 	}
 	
@@ -170,31 +177,51 @@ bot.on('error', function(error){
 
 // server status check function
 function updatePogoStatus(message){
-	var request = https.request(httpo, function(response){
+	var request = https.request(pokeStatus.https_options, function(response){
 		var str = '';
 		response.on('data', function(data){
 			str += data;
 		}).on('end', function(){
-			str = str.substring(str.indexOf('{'), str.indexOf('}') + 1);
-			var json = JSON.parse(str);
+			var firstCheck = pokeStatus.go_response == -1;
 			
-			if(typeof serverStatus === 'undefined')
-				console.log('Server status initialized: ' + json.status.toUpperCase());
-				
-			else if(typeof message !== 'undefined')
-				bot.reply(message, 'Server is currently ' + json.status.toUpperCase());
+			// update server status object
+			pokeStatus.update(JSON.parse(str));
 			
-			else if(serverStatus != json.status.toUpperCase()){
-				console.log('Server status changed from ' + serverStatus + ' to ' + json.status.toUpperCase());
-				
-				// announce to all target channels
-				if(!muted){
-					var d = new Date();
-					for(var i=0; i<targetChannels.length; i++)
-						bot.sendMessage(targetChannels[i], '[' + d.toLocaleTimeString() + '] Server is ' + json.status.toUpperCase());
+			// if this is the first check, just print to console
+			if(firstCheck)
+				console.log('Server status initialized:\n  GO:  ' + pokeStatus.goStatus() + '\n  PTC: ' + pokeStatus.ptcStatus());
+			
+			// else, if the server status changed, log and announce it
+			else {
+				// GO
+				if(pokeStatus.goChanged()){
+					console.log('GO status changed: ' + pokeStatus.goStatus());
+					
+					// announce to all target channels
+					if(!muted){
+						var d = new Date();
+						for(var i=0; i<targetChannels.length; i++)
+							bot.sendMessage(targetChannels[i], '[' + d.toLocaleTimeString() + '] GO server is ' + pokeStatus.goStatus());
+					}
 				}
+				
+				// PTC
+				if(pokeStatus.ptcChanged()){
+					console.log('PTC status changed: ' + pokeStatus.ptcStatus());
+					
+					// announce to all target channels
+					if(!muted){
+						var d = new Date();
+						for(var i=0; i<targetChannels.length; i++)
+							bot.sendMessage(targetChannels[i], '[' + d.toLocaleTimeString() + '] PTC server is ' + pokeStatus.ptcStatus());
+					}
+				}
+				
+				// if this is in response to a request, send a reply
+				if(typeof message !== 'undefined')
+					bot.reply(message, 'GO ' + pokeStatus.goStatus() + ', PTC ' + pokeStatus.ptcStatus());
 			}
-			serverStatus = json.status.toUpperCase();
+			
 		});
 		
 	}).on('error', function(e){
