@@ -109,7 +109,7 @@ bot.on('message', function(message){
 				
 				case 'mute':
 					muted = !muted;
-					bot.sendMessage(message.channel, 'Bot ' + (muted ? 'muted' : 'unmuted'));
+					announce('Bot ' + (muted ? 'muted' : 'unmuted'));
 				break;
 				
 				case 'shutup':
@@ -195,11 +195,8 @@ function updatePogoStatus(message){
 					console.log('GO status changed: ' + pokeStatus.goStatus());
 					
 					// announce to all target channels
-					if(!muted){
-						var d = new Date();
-						for(var i=0; i<targetChannels.length; i++)
-							bot.sendMessage(targetChannels[i], '[' + d.toLocaleTimeString() + '] GO server is ' + pokeStatus.goStatus());
-					}
+					if(!muted)
+						announce('GO server is ' + pokeStatus.goStatus());
 				}
 				
 				// PTC
@@ -207,11 +204,8 @@ function updatePogoStatus(message){
 					console.log('PTC status changed: ' + pokeStatus.ptcStatus());
 					
 					// announce to all target channels
-					if(!muted){
-						var d = new Date();
-						for(var i=0; i<targetChannels.length; i++)
-							bot.sendMessage(targetChannels[i], '[' + d.toLocaleTimeString() + '] PTC server is ' + pokeStatus.ptcStatus());
-					}
+					if(!muted)
+						announce('PTC server is ' + pokeStatus.ptcStatus());
 				}
 				
 				// if this is in response to a request, send a reply
@@ -226,3 +220,8 @@ function updatePogoStatus(message){
 	}).end();
 }
 
+function announce(message){
+	var d = new Date();
+	for(var i=0; i<targetChannels.length; i++)
+		bot.sendMessage(targetChannels[i], '[' + d.toLocaleTimeString() + '] ' + message);
+}
