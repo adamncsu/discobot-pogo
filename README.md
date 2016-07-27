@@ -1,5 +1,5 @@
 # discobot-pogo
-Discord bot written in node.js using discord.js. Monitors and announces Pokemon Go server status, obtained from [go.jooas.com](https://go.jooas.com/).
+Discord bot written for node.js using discord.js. Monitors and announces Pokemon Go server status, obtained from [go.jooas.com](https://go.jooas.com/).
 
 ### Requirements
 
@@ -13,6 +13,10 @@ Discord bot written in node.js using discord.js. Monitors and announces Pokemon 
 
           npm install console-stamp
 
+* [jsonfile](https://www.npmjs.com/package/jsonfile)
+
+          npm install --save jsonfile
+
 ---
 
 ### Settings
@@ -21,21 +25,25 @@ Discord bot written in node.js using discord.js. Monitors and announces Pokemon 
 
 `botToken` is the token acquired after [creating your bot](https://discordapp.com/developers/applications/me).
 
-`channelName` is the name of the channel that you want to listen to public commands in. This is also the channel that announcements are made in. Can connect to channel on multiple servers.
+`channelPath` is the file path where you want to store subscribed channels. The bot only listens on subscribed channels. To subscribe, see usage below.
 
 ---
 
 ### Usage
 
+**TO SUBSCRIBE** - in your target channel, mention the bot and send `!subscribe` -- `@PogoBot !subscribe`
+
+**TO UNSUBSCRIBE** - in a subscribed channel, just type `!unsubscribe`, mention is not required.
+
 **Admin commands** - sent to the bot in a PM
 
-* `kill` terminates the bot
-* `mute` prevents the bot from announcing status changes
-* `shutup` mutes the bot for 10 minutes
-
+* `!kill` terminates the bot
+* `!mute` prevents the bot from announcing status changes
+* `!shutup` mutes the bot for 10 minutes
 
 **Public commands** - sent to the bot in target channel (`channelName`)
 
 * `!ping` bot status check
 * `!status` forces a refresh and announcement of the current server status
 * `!uptime` announces the server uptime stats
+* `!unsubscribe` unsubscribes from the bot's channel list
