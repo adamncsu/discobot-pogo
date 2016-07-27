@@ -20,9 +20,6 @@ module.exports = {
 	},
 	
 	update: function(json){
-		this.go_online_prev = this.go_online;
-		this.ptc_online_prev = this.ptc_online;
-		
 		this.go_online = 		json.go_online;
 		this.go_response = 		json.go_response;
 		this.go_idle = 			json.go_idle;

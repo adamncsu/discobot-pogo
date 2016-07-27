@@ -5,7 +5,7 @@ module.exports = {
 	// bot only accepts admin commands from this user ID
 	adminID: "XXX",
 	
-	// only listens and announces in this channel (on all connected servers)
-	channelName: "pogo"
+	// file to store subscribed channels
+	channelPath: "./channels"
 }
 
