@@ -66,7 +66,7 @@ bot.on('ready', function(){
 		targetChannels = jsonfile.readFileSync(settings.channelPath);
 	}
 	catch(err){
-		console.log(err);
+		console.log('Channel file does not exist. Creating...');
 		targetChannels = [];
 			jsonfile.writeFile(settings.channelPath, [], function (err){
 			if(err){
@@ -107,9 +107,12 @@ bot.on('message', function(message){
 	
 	// PM received
 	if(message.channel instanceof discord.PMChannel){
-	
+		// also allow pm subscriptions
+		if(message.content.indexOf('!subscribe') > -1)
+			subscribeChannel(message);
+
 		// admin commands
-		if(message.author.id == settings.adminID)
+		else if(message.author.id == settings.adminID)
 			processAdminCommand(message);
 		
 		// public commands
@@ -146,7 +149,10 @@ function processAdminCommand(message){
 	switch(message.content.substring(1).toLowerCase()){
 		
 		case 'status':
-			updatePogoStatus(message);
+		case 'uptime':
+		case 'ping':
+		case 'unsubscribe':
+			processCommand(message);
 		break;
 		
 		case 'kill':
@@ -241,7 +247,7 @@ function updatePogoStatus(message){
 				}
 				
 				// PTC
-				if(pokeStatus.ptcChanged() && pokeStatus.go_idle > 5.0){
+				if(pokeStatus.ptcChanged() && pokeStatus.ptc_idle > 5.0){
 					console.log('PTC status changed: ' + pokeStatus.ptcStatus());
 					pokeStatus.ptc_online_prev = pokeStatus.ptc_online;
 					
