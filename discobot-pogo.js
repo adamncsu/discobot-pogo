@@ -225,7 +225,13 @@ function updatePogoStatus(message){
 			var firstCheck = pokeStatus.go_response == -1;
 			
 			// update server status object
-			pokeStatus.update(JSON.parse(str));
+			try{
+				pokeStatus.update(JSON.parse(str));
+			}
+			catch(err){ 
+				bot.sendMessage(settings.adminID, "Error parsing JSON");
+				console.log(err);
+			}
 			
 			// if this is the first check, just print to console
 			if(firstCheck){
