@@ -3,7 +3,23 @@ const https = require('https');
 const jsonfile = require('jsonfile');
 
 // logging
-require( "console-stamp" )( console, { pattern : "dd/mm/yy HH:MM:ss.l" } );
+var winston = require('winston');
+var logger = new (winston.Logger)({
+	transports: [
+		new (winston.transports.Console)({
+			'timestamp': getTimestamp
+		}),
+		new (winston.transports.File)({
+			'filename': './logs/log',
+			'json': false,
+			'maxsize': 200000,
+			'maxFiles': 10,
+			'timestamp': getTimestamp,
+			'handleExceptions': true,
+			'humanReadableUnhandledException': true
+		})
+	]
+});
 
 // server status and info
 var pokeStatus = require('./status.js');
@@ -21,7 +37,7 @@ var timer;
 
 // bot initialization
 function init(){
-	console.log('Initializing bot...');
+	logger.info('Initializing bot...');
 	bot = new discord.Client({
 		autoReconnect: true,
 		rateLimitAsError: true
@@ -35,30 +51,22 @@ init();
 
 // bot event handler -- connected
 bot.on('ready', function(){
-	console.log('Bot online');
+	logger.info('Bot online');
 	bot.sendMessage(settings.adminID, 'Bot online');
 	
-	// list connected servers
+	// print connected servers
 	if(bot.servers.length > 0){
-		console.log('Connected servers: ');
+		logger.info('Connected servers: ');
 		for (var i=0; i<bot.servers.length; i++)
-			console.log('  - %s (%s)', bot.servers[i].name, bot.servers[i].id);
+			logger.info('  %s (%s)', bot.servers[i].name, bot.servers[i].id);
 	}
 	else{
-		console.warn('Not connected to any servers. Disconnecting...');
+		logger.warn('Not connected to any servers. Disconnecting...');
 		bot.destroy(function(){
-			console.log('Ending process...');
+			logger.warn('Ending process...');
 			process.exit();
 		});
 		return;
-	}
-		
-	// list connected channels
-	var textChannels = bot.channels.getAll('type', 'text');
-	if(textChannels.length > 0){
-		console.log('Connected channels: ');
-		for (var i=0; i<textChannels.length; i++) 
-			console.log('  - %s (%s)', textChannels[i].name, textChannels[i].id);
 	}
 	
 	// load subscribed channels
@@ -66,18 +74,25 @@ bot.on('ready', function(){
 		targetChannels = jsonfile.readFileSync(settings.channelPath);
 	}
 	catch(err){
-		console.log('Channel file does not exist. Creating...');
+		logger.warn('Channel file does not exist. Creating...');
 		targetChannels = [];
 			jsonfile.writeFile(settings.channelPath, [], function (err){
 			if(err){
-				console.error('Unable to write file. Ending process...');
+				logger.error('Unable to write file. Ending process...');
 				process.exit();
 			}
 		});
 	}
-	
-	console.log('Subscribed channels:');
-	console.log(targetChannels);
+		
+	// print subscribed channels
+	var textChannels = bot.channels.getAll('type', 'text');
+	if(textChannels.length > 0){
+		logger.info('Subscribed channels:');
+		for (var i=0; i<textChannels.length; i++) {
+			if(targetChannels.indexOf(textChannels[i].id) > -1)
+				logger.info('  [%s] %s (%s)', textChannels[i].server.name, textChannels[i].name, textChannels[i].id);
+		}
+	}
 	
 	// set up timer
 	clearInterval(timer);
@@ -88,7 +103,7 @@ bot.on('ready', function(){
 
 // bot event handler -- disconnected
 bot.on('disconnected', function(){
-	console.log('Bot offline');
+	logger.info('Bot offline');
 });
 
 
@@ -129,14 +144,14 @@ bot.on('message', function(message){
 
 // bot event handler -- warning
 bot.on('warn', function(error){
-	console.warn(error);
+	logger.warn(error);
 	bot.sendMessage(settings.adminID, error);
 });
 
 
 // bot event handler -- error
 bot.on('error', function(error){
-	console.error(error);
+	logger.error(error);
 	bot.sendMessage(settings.adminID, error);
 });
 
@@ -145,7 +160,7 @@ function processAdminCommand(message){
 	if(message.content.charAt(0) != '!')
 		return;
 		
-	console.log('Admin command received: ' + message.content);
+	logger.info('Admin command received: ' + message.content);
 	switch(message.content.substring(1).toLowerCase()){
 		
 		case 'status':
@@ -158,7 +173,7 @@ function processAdminCommand(message){
 		case 'kill':
 			bot.sendMessage(message.channel, 'Terminating bot...', {}, function(){
 				bot.destroy(function(){
-					console.log('Ending process...');
+					logger.warn('Ending process...');
 					process.exit();
 				});
 			});
@@ -188,7 +203,7 @@ function processCommand(message){
 	if(message.content.charAt(0) != '!')
 		return;
 
-	console.log('Command received: ' + message.content);
+	logger.info('Command received: ' + message.content);
 	switch(message.content.substring(1).toLowerCase()){
 		case 'ping':
 			bot.reply(message, 'pong');
@@ -211,6 +226,7 @@ function processCommand(message){
 		case 'unsubscribe':
 			unsubscribeChannel(message);
 		break;
+		
 	}
 }
 
@@ -230,12 +246,12 @@ function updatePogoStatus(message){
 			}
 			catch(err){ 
 				bot.sendMessage(settings.adminID, "Error parsing JSON");
-				console.log(err);
+				logger.error(err);
 			}
 			
 			// if this is the first check, just print to console
 			if(firstCheck){
-				console.log('Server status initialized: GO:' + pokeStatus.goStatus() + ' PTC:' + pokeStatus.ptcStatus());
+				logger.info('Server status initialized: GO:' + pokeStatus.goStatus() + ' PTC:' + pokeStatus.ptcStatus());
 				pokeStatus.go_online_prev = pokeStatus.go_online;
 				pokeStatus.ptc_online_prev = pokeStatus.ptc_online;
 			}
@@ -244,7 +260,7 @@ function updatePogoStatus(message){
 			else {
 				// GO
 				if(pokeStatus.goChanged() && pokeStatus.go_idle > 5.0){
-					console.log('GO status changed: ' + pokeStatus.goStatus());
+					logger.info('GO status changed: ' + pokeStatus.goStatus());
 					pokeStatus.go_online_prev = pokeStatus.go_online;
 					
 					// announce to all target channels
@@ -254,7 +270,7 @@ function updatePogoStatus(message){
 				
 				// PTC
 				if(pokeStatus.ptcChanged() && pokeStatus.ptc_idle > 5.0){
-					console.log('PTC status changed: ' + pokeStatus.ptcStatus());
+					logger.info('PTC status changed: ' + pokeStatus.ptcStatus());
 					pokeStatus.ptc_online_prev = pokeStatus.ptc_online;
 					
 					// announce to all target channels
@@ -270,7 +286,7 @@ function updatePogoStatus(message){
 		});
 		
 	}).on('error', function(e){
-		console.error(e);
+		logger.error(e);
 	}).end();
 }
 
@@ -282,16 +298,16 @@ function announce(message){
 
 function subscribeChannel(message){
 	if(targetChannels.indexOf(message.channel.id) > -1){
-		console.log('Channel ' + message.channel.id + ' already subscribed');
+		logger.warn('Channel ' + message.channel.id + ' already subscribed');
 		bot.sendMessage(message.author.id, 'Channel ' + message.channel.id + ' already subscribed');
 	}
 	else{
 		targetChannels.push(message.channel.id);
 		jsonfile.writeFile(settings.channelPath, targetChannels, function (err){
 			if(err)
-				console.error('Unable to write file!');
+				logger.error('Unable to write file!');
 			else{
-				console.log('Added ' + message.channel.id + ' to subscribed channels');
+				logger.info('Added ' + message.channel.id + ' to subscribed channels');
 				bot.sendMessage(message.author.id, 'Added ' + message.channel.id + ' to subscribed channels');
 			}
 		});
@@ -303,16 +319,21 @@ function unsubscribeChannel(message){
 		targetChannels.splice(targetChannels.indexOf(message.channel.id), 1);
 		jsonfile.writeFile(settings.channelPath, targetChannels, function (err){
 			if(err){
-				console.error('Unable to write file!');
+				logger.error('Unable to write file!');
 			}
 			else{
-				console.log('Removed ' + message.channel.id + ' from subscribed channels');
+				logger.info('Removed ' + message.channel.id + ' from subscribed channels');
 				bot.sendMessage(message.author.id, 'Removed ' + message.channel.id + ' from subscribed channels');
 			}
 		});
 	}
 	else{
-		console.log('Channel ' + message.channel.id + ' is not subscribed');
+		logger.warn('Channel ' + message.channel.id + ' is not subscribed');
 		bot.sendMessage(message.author.id, 'Channel ' + message.channel.id + ' is not subscribed');
 	}
+}
+
+function getTimestamp(){
+	var d = new Date();
+	return d.toLocaleString();
 }
